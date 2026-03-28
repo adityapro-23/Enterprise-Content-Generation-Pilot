@@ -70,9 +70,13 @@ async def initiate_campaign(req: InitiateRequest, background_tasks: BackgroundTa
 
         config = {"configurable": {"thread_id": req.db_id}}
 
-        # FIXED: Wrap ainvoke in a background task so the UI can route immediately
+        # FIXED: Catch graph crashes and update UI
         async def run_graph():
-            await graph_app.ainvoke(initial_state, config)
+            try:
+                await graph_app.ainvoke(initial_state, config)
+            except Exception as e:
+                from app.services.convex_sync import update_convex_campaign
+                await update_convex_campaign(req.db_id, {"status": "ERROR", "error": str(e)})
 
         background_tasks.add_task(run_graph)
 
@@ -97,9 +101,13 @@ async def handle_gate_resume(db_id: str, feedback: Optional[str], gate_number: O
         target_node = "node_draft_content" if gate_number == 1 else "node_localize_content"
         await graph_app.aupdate_state(config, {"feedback": feedback}, as_node=target_node)
 
-    # FIXED: Run the resumption in the background
+    # FIXED: Catch graph crashes and update UI
     async def resume_graph():
-        await graph_app.ainvoke(None, config)
+        try:
+            await graph_app.ainvoke(None, config)
+        except Exception as e:
+            from app.services.convex_sync import update_convex_campaign
+            await update_convex_campaign(db_id, {"status": "ERROR", "error": str(e)})
 
     background_tasks.add_task(resume_graph)
 

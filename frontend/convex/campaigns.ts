@@ -55,7 +55,7 @@ export const getRecent = query({
 export const updateStatus = mutation({
   args: {
     id: v.id("campaigns"),
-    status: v.string(),
+    status: v.optional(v.string()), // FIXED: Made optional so partial updates don't crash
     master_text: v.optional(
       v.object({
         text: v.string(),
