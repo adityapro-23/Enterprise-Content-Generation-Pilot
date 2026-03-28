@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, List
 from app.models.campaign import CampaignBrief
@@ -26,8 +26,11 @@ class GateRequest(BaseModel):
     feedback: Optional[str] = None
     gate_number: Optional[int] = None
 
+class StopRequest(BaseModel):
+    db_id: str
+
 @router.post("/api/campaign/initiate")
-async def initiate_campaign(req: InitiateRequest):
+async def initiate_campaign(req: InitiateRequest, background_tasks: BackgroundTasks):
     try:
         # Extract rules from workspace payload
         compliance_rules_data = req.workspace_rules.get("compliance_rules", {})
@@ -36,7 +39,7 @@ async def initiate_campaign(req: InitiateRequest):
             mandatory_disclaimers_by_region=compliance_rules_data.get("mandatory_disclaimers_by_region", {}),
             mandatory_disclaimers_by_topic=compliance_rules_data.get("mandatory_disclaimers_by_topic", {})
         )
-        
+
         brief = CampaignBrief(
             campaign_id=req.campaign_id,
             initiated_by=req.initiated_by,
@@ -45,7 +48,7 @@ async def initiate_campaign(req: InitiateRequest):
             target_personas=req.target_personas,
             desired_formats=req.desired_formats
         )
-        
+
         initial_state: GraphState = {
             "campaign_id": req.campaign_id,
             "db_id": req.db_id,
@@ -64,69 +67,62 @@ async def initiate_campaign(req: InitiateRequest):
             "assets": req.assets,  # FIXED: Initialize assets in state
             "current_status": "PROCESSING"
         }
-        
+
         config = {"configurable": {"thread_id": req.db_id}}
-        
-        # Invoke the graph
-        await graph_app.ainvoke(initial_state, config)
-        
-        state_info = await graph_app.aget_state(config)
-        next_nodes = state_info.next
-        
+
+        # FIXED: Wrap ainvoke in a background task so the UI can route immediately
+        async def run_graph():
+            await graph_app.ainvoke(initial_state, config)
+
+        background_tasks.add_task(run_graph)
+
+        # Immediately return so the UI can transition to the execution loading screen
         return {
             "db_id": req.db_id,
-            "status": f"WAITING_AT_{next_nodes[0].upper()}" if next_nodes else "COMPLETED"
+            "status": "PROCESSING"
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-async def handle_gate_resume(db_id: str, feedback: Optional[str], gate_number: Optional[int]):
+
+async def handle_gate_resume(db_id: str, feedback: Optional[str], gate_number: Optional[int], background_tasks: BackgroundTasks):
     config = {"configurable": {"thread_id": db_id}}
     state_info = await graph_app.aget_state(config)
-    
+
     if not state_info.next:
         raise HTTPException(status_code=400, detail="Campaign not in a waiting state")
 
     if feedback:
-        # If feedback is provided, we update the state and technically we might want 
-        # to go BACK to the previous node. For this flow:
-        # Gate 1 -> node_draft_content
-        # Gate 2 -> node_localize_content
         target_node = "node_draft_content" if gate_number == 1 else "node_localize_content"
-        
         await graph_app.aupdate_state(config, {"feedback": feedback}, as_node=target_node)
-        # We need to manually set the next node pointer if we want to loop back
-        # In a real LangGraph setup, we'd use a more robust "rewind" or conditional logic
-        # For now, we'll assume the node logic handles the next step or we resume
-    
-    await graph_app.ainvoke(None, config)
-    
-    new_state = await graph_app.aget_state(config)
-    next_nodes = new_state.next
-    
+
+    # FIXED: Run the resumption in the background
+    async def resume_graph():
+        await graph_app.ainvoke(None, config)
+
+    background_tasks.add_task(resume_graph)
+
     return {
         "db_id": db_id,
-        "status": f"WAITING_AT_{next_nodes[0].upper()}" if next_nodes else "COMPLETED"
+        "status": "RESUMED_PROCESSING"
     }
 
+
 @router.post("/api/campaign/approve-gate-1")
-async def approve_gate_1(req: GateRequest):
-    return await handle_gate_resume(req.db_id, None, 1)
+async def approve_gate_1(req: GateRequest, background_tasks: BackgroundTasks):
+    return await handle_gate_resume(req.db_id, None, 1, background_tasks)
 
 @router.post("/api/campaign/approve-gate-2")
-async def approve_gate_2(req: GateRequest):
-    return await handle_gate_resume(req.db_id, None, 2)
+async def approve_gate_2(req: GateRequest, background_tasks: BackgroundTasks):
+    return await handle_gate_resume(req.db_id, None, 2, background_tasks)
 
 @router.post("/api/campaign/reject-gate")
-async def reject_gate(req: GateRequest):
+async def reject_gate(req: GateRequest, background_tasks: BackgroundTasks):
     """Handles 'Regenerate with feedback'"""
     if not req.feedback:
         raise HTTPException(status_code=400, detail="Feedback is required for regeneration")
-    return await handle_gate_resume(req.db_id, req.feedback, req.gate_number)
-
-class StopRequest(BaseModel):
-    db_id: str
+    return await handle_gate_resume(req.db_id, req.feedback, req.gate_number, background_tasks)
 
 @router.post("/api/campaign/stop")
 async def stop_campaign(req: StopRequest):

@@ -9,3 +9,5 @@ spacy
 requests
 Pillow
 python-dotenv
+convex
+qdrant-client
