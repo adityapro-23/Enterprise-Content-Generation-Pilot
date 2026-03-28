@@ -144,8 +144,9 @@ export default function NewCampaignPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           db_id: campaignId,
-          workspace_rules: workspace,
           ...campaignBrief,
+          workspace_rules: workspace || {}, // FIXED: Passed workspace rules
+          assets: files.map(f => ({ name: f.name, type: f.type })) // FIXED: Pass file metadata
         }),
       });
 

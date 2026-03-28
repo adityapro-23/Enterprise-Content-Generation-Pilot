@@ -10,6 +10,7 @@ class GraphState(TypedDict):
     db_id: str  # Convex ID
     brief: CampaignBrief
     compliance_rules: ComplianceRules
+    assets: list[dict]
     draft_text: str
     text_audit: TextualGovernanceAudit
     locked_master_text: str

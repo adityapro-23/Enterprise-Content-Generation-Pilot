@@ -18,7 +18,8 @@ class InitiateRequest(BaseModel):
     desired_formats: List[str]
     enable_localization: bool
     selected_language: Optional[str] = None
-    workspace_rules: dict
+    workspace_rules: dict = {}
+    assets: Optional[List[dict]] = []
 
 class GateRequest(BaseModel):
     db_id: str
@@ -60,6 +61,7 @@ async def initiate_campaign(req: InitiateRequest):
             "visual_assets": [],
             "visual_audit": None,
             "feedback": "",
+            "assets": req.assets,  # FIXED: Initialize assets in state
             "current_status": "PROCESSING"
         }
         

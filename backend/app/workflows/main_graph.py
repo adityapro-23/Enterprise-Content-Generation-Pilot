@@ -21,6 +21,7 @@ async def node_draft_content(state: GraphState):
     Node 1: Knowledge to Content
     Incorporate Qdrant retrieval and human feedback if present.
     """
+    facts = []
     # Qdrant retrieval from the creative objective
     try:
         qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
@@ -40,16 +41,32 @@ async def node_draft_content(state: GraphState):
         facts = [{"source": hit.payload.get("source", "KB"), "fact": hit.payload.get("text", "")} for hit in search_result]
     except Exception as e:
         print(f"Warning: Qdrant retrieval failed: {e}")
-        facts = []
         
-    # If feedback exists, prepend it to the prompt
-    prompt_modifier = f"User Feedback to incorporate: {state.get('feedback', '')}\n" if state.get("feedback") else ""
+    # FALLBACK LOGIC
+    # If 0 results or failed, use uploaded assets and raw_prompt as primary context
+    if not facts:
+        assets_context = ", ".join([a.get("name", "") for a in state.get("assets", [])])
+        raw_prompt = state["brief"].creative_objective
+        facts = [
+            {"source": "User Uploaded Assets", "fact": assets_context},
+            {"source": "Raw Prompt Context", "fact": raw_prompt}
+        ]
     
-    # We assume generate_master_draft takes the brief, facts, and rules.
-    draft = await generate_master_draft(state["brief"], facts, state["compliance_rules"])
+    assets = state.get("assets", [])
+    feedback = state.get("feedback", "")
+    
+    # FIXED: Pass feedback, assets, and rules properly to the agent
+    draft = await generate_master_draft(
+        brief=state["brief"],
+        facts=facts,
+        compliance_rules=state.get("compliance_rules"),
+        feedback=feedback,
+        assets=assets
+    )
     
     await update_convex_campaign(state["db_id"], {"master_text": {"text": draft, "character_count": len(draft)}})
     
+    # FIXED: Clear feedback after processing it so it doesn't loop infinitely
     return {"draft_text": draft, "current_status": "PROCESSING", "feedback": ""}
 
 async def node_text_governance(state: GraphState):
