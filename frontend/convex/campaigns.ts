@@ -79,3 +79,13 @@ export const updateStatus = mutation({
     await ctx.db.patch(id, updateFields);
   },
 });
+
+/**
+ * Delete a campaign entirely from the database.
+ */
+export const remove = mutation({
+  args: { id: v.id("campaigns") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
+  },
+});

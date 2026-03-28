@@ -124,3 +124,16 @@ async def reject_gate(req: GateRequest):
     if not req.feedback:
         raise HTTPException(status_code=400, detail="Feedback is required for regeneration")
     return await handle_gate_resume(req.db_id, req.feedback, req.gate_number)
+
+class StopRequest(BaseModel):
+    db_id: str
+
+@router.post("/api/campaign/stop")
+async def stop_campaign(req: StopRequest):
+    try:
+        config = {"configurable": {"thread_id": req.db_id}}
+        # Update the graph state to forcibly halt processing
+        await graph_app.aupdate_state(config, {"current_status": "STOPPED"}, as_node=None)
+        return {"status": "success", "message": "Campaign execution stopped."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

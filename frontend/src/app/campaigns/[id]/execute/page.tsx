@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef, use } from 'react';
-import { useQuery } from 'convex/react';
+import { useRouter } from 'next/navigation';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
 import { Id } from '../../../../../convex/_generated/dataModel';
 
@@ -470,7 +471,10 @@ function ProcessingPanel() {
 // ───────────────────────────────────────────────────────────────
 export default function ExecutePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter(); // ADD THIS
   const campaign = useQuery(api.campaigns.getById, { id: id as Id<"campaigns"> });
+  const updateStatus = useMutation(api.campaigns.updateStatus); // ADD THIS
+  const removeCampaign = useMutation(api.campaigns.remove); // ADD THIS
   const [elapsedMs, setElapsedMs] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval>>(null);
 
@@ -480,6 +484,29 @@ export default function ExecutePage({ params }: { params: Promise<{ id: string }
   }, []);
 
   const execState: ExecutionState = campaign?.status as ExecutionState || 'PROCESSING';
+
+  const handleStop = async () => {
+    try {
+      await updateStatus({ id: id as Id<"campaigns">, status: 'STOPPED', error: 'Stopped by user.' });
+      await fetch('http://localhost:8000/api/campaign/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ db_id: id }),
+      });
+    } catch (err) {
+      console.error("Failed to stop campaign:", err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to permanently delete this campaign?")) return;
+    try {
+      await removeCampaign({ id: id as Id<"campaigns"> });
+      router.push('/main');
+    } catch (err) {
+      console.error("Failed to delete campaign:", err);
+    }
+  };
 
   // ── Action handlers ─────────────────────────────────────────
   const handleApprove = async () => {
@@ -569,9 +596,18 @@ export default function ExecutePage({ params }: { params: Promise<{ id: string }
       <div className="border-b border-slate-800/80 px-6 py-3 flex items-center justify-between flex-shrink-0" style={{ background: 'rgba(10,14,26,0.7)', backdropFilter: 'blur(8px)' }}>
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-semibold text-slate-200">Campaign: {id}</h1>
-          <span className="badge-amber">{stateLabel[execState]}</span>
+          <span className="badge-amber">{execState === 'STOPPED' ? '🛑 Stopped' : stateLabel[execState] || execState}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {execState === 'PROCESSING' && (
+            <button onClick={handleStop} className="btn-danger text-xs px-3 py-1.5">
+              🛑 Stop Processing
+            </button>
+          )}
+          <button onClick={handleDelete} className="btn-secondary text-xs px-3 py-1.5 text-rose-400 hover:text-rose-300 hover:border-rose-500/50">
+            🗑 Delete Campaign
+          </button>
+          <div className="w-px h-4 bg-slate-700 mx-1" />
           <Link href="/campaigns/new" id="btn-back-new" className="btn-ghost text-xs">← New Campaign</Link>
           <Link href="/main" id="btn-back-main" className="btn-ghost text-xs">🏠 Dashboard</Link>
         </div>

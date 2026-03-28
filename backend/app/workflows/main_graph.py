@@ -42,15 +42,18 @@ async def node_draft_content(state: GraphState):
     except Exception as e:
         print(f"Warning: Qdrant retrieval failed: {e}")
         
-    # FALLBACK LOGIC
-    # If 0 results or failed, use uploaded assets and raw_prompt as primary context
-    if not facts:
-        assets_context = ", ".join([a.get("name", "") for a in state.get("assets", [])])
-        raw_prompt = state["brief"].creative_objective
+    # STRICT FALLBACK LOGIC
+    # Check if OAuth apps are connected via workspace rules
+    oauth_connected = state.get("workspace_rules", {}).get("oauth_connected", False)
+    
+    # If no facts from Qdrant AND no OAuth, strictly fence the AI to use ONLY campaign inputs
+    if not facts and not oauth_connected:
+        assets_context = ", ".join([a.get("name", "Unknown Asset") for a in state.get("assets", [])])
         facts = [
-            {"source": "User Uploaded Assets", "fact": assets_context},
-            {"source": "Raw Prompt Context", "fact": raw_prompt}
+            {"source": "SYSTEM DIRECTIVE", "fact": "NO EXTERNAL KNOWLEDGE FOUND. You MUST rely ONLY on the user's prompt and the following uploaded assets: " + assets_context}
         ]
+    elif not facts and oauth_connected:
+        facts = [{"source": "System", "fact": "No relevant context found in connected knowledge bases."}]
     
     assets = state.get("assets", [])
     feedback = state.get("feedback", "")
