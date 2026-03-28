@@ -97,9 +97,10 @@ async def handle_gate_resume(db_id: str, feedback: Optional[str], gate_number: O
     if not state_info.next:
         raise HTTPException(status_code=400, detail="Campaign not in a waiting state")
 
-    if feedback:
-        target_node = "node_draft_content" if gate_number == 1 else "node_localize_content"
-        await graph_app.aupdate_state(config, {"feedback": feedback}, as_node=target_node)
+    target_node = "node_draft_content" if gate_number == 1 else "node_localize_content"
+    # Always update the state as_node so LangGraph rewinds and regenerates
+    # Even if feedback is empty, we must rewind.
+    await graph_app.aupdate_state(config, {"feedback": feedback or ""}, as_node=target_node)
 
     # FIXED: Catch graph crashes and update UI
     async def resume_graph():
@@ -127,9 +128,8 @@ async def approve_gate_2(req: GateRequest, background_tasks: BackgroundTasks):
 
 @router.post("/api/campaign/reject-gate")
 async def reject_gate(req: GateRequest, background_tasks: BackgroundTasks):
-    """Handles 'Regenerate with feedback'"""
-    if not req.feedback:
-        raise HTTPException(status_code=400, detail="Feedback is required for regeneration")
+    """Handles 'Regenerate' and 'Regenerate with feedback'"""
+
     return await handle_gate_resume(req.db_id, req.feedback, req.gate_number, background_tasks)
 
 @router.post("/api/campaign/stop")

@@ -10,7 +10,7 @@ import { Id } from '../../../../../convex/_generated/dataModel';
 // ───────────────────────────────────────────────────────────────
 // TYPES
 // ───────────────────────────────────────────────────────────────
-type ExecutionState = 'PROCESSING' | 'GATE_1_TEXT' | 'GATE_2_LOCALIZATION' | 'GATE_4_VISUALS';
+type ExecutionState = 'PROCESSING' | 'GATE_1_TEXT' | 'GATE_2_LOCALIZATION' | 'GATE_4_VISUALS' | 'STOPPED' | 'ERROR';
 
 interface PipelinePhase {
   id: string;
@@ -588,6 +588,8 @@ export default function ExecutePage({ params }: { params: Promise<{ id: string }
     GATE_1_TEXT: '⏸ Gate 1 — Text Review',
     GATE_2_LOCALIZATION: '⏸ Gate 2 — Localization',
     GATE_4_VISUALS: '🎨 Visual Generation',
+    STOPPED: '🛑 Stopped',
+    ERROR: '❌ Error',
   };
 
   return (
