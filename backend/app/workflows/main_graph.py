@@ -7,6 +7,9 @@ from app.agents.knowledge_to_content import generate_master_draft
 from app.agents.textual_governance import audit_text
 from app.agents.localization import transcreate_text
 from app.agents.visual_governance import audit_image_assets
+import os
+from openai import AsyncOpenAI
+from qdrant_client import AsyncQdrantClient
 from app.services.convex_sync import update_convex_campaign
 
 # ───────────────────────────────────────────────────────────────
@@ -18,14 +21,31 @@ async def node_draft_content(state: GraphState):
     Node 1: Knowledge to Content
     Incorporate Qdrant retrieval and human feedback if present.
     """
-    # Simulate Qdrant retrieval from the creative objective
-    facts = [
-        {"source": "SharePoint/ProductSpecs", "fact": "AutoHeal Agent supports Node.js and Python projects."}
-    ]
-    
+    # Qdrant retrieval from the creative objective
+    try:
+        qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
+        # Initialize qdrant client (use standard QdrantClient since we are in an async context, or AsyncQdrantClient)
+        qdrant = AsyncQdrantClient(url=qdrant_url)
+        ai = AsyncOpenAI()
+        
+        objective = state["brief"].creative_objective
+        embed_res = await ai.embeddings.create(input=objective, model="text-embedding-3-small")
+        query_vector = embed_res.data[0].embedding
+        
+        search_result = await qdrant.search(
+            collection_name="knowledge_base",
+            query_vector=query_vector,
+            limit=3
+        )
+        facts = [{"source": hit.payload.get("source", "KB"), "fact": hit.payload.get("text", "")} for hit in search_result]
+    except Exception as e:
+        print(f"Warning: Qdrant retrieval failed: {e}")
+        facts = []
+        
     # If feedback exists, prepend it to the prompt
     prompt_modifier = f"User Feedback to incorporate: {state.get('feedback', '')}\n" if state.get("feedback") else ""
     
+    # We assume generate_master_draft takes the brief, facts, and rules.
     draft = await generate_master_draft(state["brief"], facts, state["compliance_rules"])
     
     await update_convex_campaign(state["db_id"], {"master_text": {"text": draft, "character_count": len(draft)}})
@@ -93,13 +113,30 @@ async def node_visual_generation(state: GraphState):
     
     # We produce one asset set per locale
     locales = state["localized_texts"].keys()
+    if not locales:
+        locales = ["English"] # Fallback
+        
+    ai = AsyncOpenAI()
     
     for locale in locales:
         for fmt in formats:
             # Check format type
             is_image = "Image" in fmt
-            asset_url = "https://images.unsplash.com/photo-1618401303847-c186851d6540" if is_image else "https://example.com/mock-video.mp4"
-            
+            if is_image:
+                try:
+                    res = await ai.images.generate(
+                        model="dall-e-3",
+                        prompt=f"Create a high-quality visual asset for the following campaign: {state['brief'].creative_objective}",
+                        n=1,
+                        size="1024x1024"
+                    )
+                    asset_url = res.data[0].url
+                except Exception as e:
+                    print(f"DALLE Error: {e}")
+                    asset_url = "https://images.unsplash.com/photo-1618401303847-c186851d6540"
+            else:
+                asset_url = "https://example.com/mock-video.mp4"
+                
             assets.append({
                 "id": f"v-{locale}-{fmt.replace(' ', '-')}",
                 "locale": locale,
@@ -135,7 +172,10 @@ def route_after_text_audit(state: GraphState):
     return "node_localize_content"
 
 def route_after_visual_audit(state: GraphState):
-    # Placeholder for loop back logic if audit fails
+    # Loop back logic if audit fails
+    visual_audit = state.get("visual_audit")
+    if visual_audit and isinstance(visual_audit, dict) and visual_audit.get("status") == "FAILED":
+        return "node_visual_generation"
     return END
 
 builder = StateGraph(GraphState)
@@ -154,7 +194,7 @@ builder.add_conditional_edges("node_text_governance", route_after_text_audit)
 builder.add_edge("node_localize_content", "node_regional_governance")
 builder.add_edge("node_regional_governance", "node_visual_generation")
 builder.add_edge("node_visual_generation", "node_visual_governance")
-builder.add_edge("node_visual_governance", END)
+builder.add_conditional_edges("node_visual_governance", route_after_visual_audit)
 
 memory = MemorySaver()
 app = builder.compile(

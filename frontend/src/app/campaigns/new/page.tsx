@@ -144,6 +144,7 @@ export default function NewCampaignPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           db_id: campaignId,
+          workspace_rules: workspace,
           ...campaignBrief,
         }),
       });

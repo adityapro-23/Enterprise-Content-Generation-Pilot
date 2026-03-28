@@ -18,6 +18,7 @@ class InitiateRequest(BaseModel):
     desired_formats: List[str]
     enable_localization: bool
     selected_language: Optional[str] = None
+    workspace_rules: dict
 
 class GateRequest(BaseModel):
     db_id: str
@@ -27,11 +28,12 @@ class GateRequest(BaseModel):
 @router.post("/api/campaign/initiate")
 async def initiate_campaign(req: InitiateRequest):
     try:
-        # Mock compliance rules for simple testing
+        # Extract rules from workspace payload
+        compliance_rules_data = req.workspace_rules.get("compliance_rules", {})
         compliance_rules = ComplianceRules(
-            forbidden_phrases=["medical grade"],
-            mandatory_disclaimers_by_region={},
-            mandatory_disclaimers_by_topic={}
+            forbidden_phrases=compliance_rules_data.get("forbidden_phrases", []),
+            mandatory_disclaimers_by_region=compliance_rules_data.get("mandatory_disclaimers_by_region", {}),
+            mandatory_disclaimers_by_topic=compliance_rules_data.get("mandatory_disclaimers_by_topic", {})
         )
         
         brief = CampaignBrief(
