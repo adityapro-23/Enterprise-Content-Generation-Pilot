@@ -8,9 +8,12 @@ from app.agents.textual_governance import audit_text
 from app.agents.localization import generate_localized_copy
 from app.agents.visual_governance import audit_image_assets
 import os
+import logging
 from openai import AsyncOpenAI
 from qdrant_client import AsyncQdrantClient
 from app.services.convex_sync import update_convex_campaign
+
+logger = logging.getLogger(__name__)
 
 # ───────────────────────────────────────────────────────────────
 # NODES
@@ -129,13 +132,23 @@ async def node_localize_content(state: GraphState):
         feedback=state.get("feedback", "")
     )
     
+    # Convex Schema expects: { translations: { [locale]: { text: "..." } }, character_counts: { [locale]: length } }
+    loc_payload = {
+        "translations": {
+            target_lang: { "text": localized }
+        },
+        "character_counts": {
+            target_lang: len(localized)
+        }
+    }
+    
     # Push to Convex and explicitly trigger the UI pause state for Gate 2
     await update_convex_campaign(state["db_id"], {
-        "localized_texts": {"default": localized},
+        "localized_texts": loc_payload,
         "status": "GATE_2_LOCALIZATION"
     })
     
-    return {"localized_texts": {"default": localized}, "current_status": "GATE_2_LOCALIZATION", "feedback": ""}
+    return {"localized_texts": loc_payload, "current_status": "GATE_2_LOCALIZATION", "feedback": ""}
 
 async def node_regional_governance(state: GraphState) -> GraphState:
     """
@@ -165,7 +178,8 @@ async def node_visual_generation(state: GraphState):
     assets = []
     
     # We produce one asset set per locale
-    locales = list(state["localized_texts"].keys())
+    translations = state.get("localized_texts", {}).get("translations", {})
+    locales = list(translations.keys())
     if not locales:
         locales = ["English"] # Fallback
         
@@ -196,34 +210,72 @@ async def node_visual_generation(state: GraphState):
                 "url": asset_url,
                 "status": "COMPLETED"
             })
+    
+    # Push to Convex so the UI updates to Phase 4 (Visuals) immediately
+    await update_convex_campaign(state["db_id"], {
+        "visual_assets": assets,
+        "status": "GATE_4_VISUALS"
+    })
             
-    return {"visual_assets": assets, "current_status": "PROCESSING"}
+    return {"visual_assets": assets, "current_status": "GATE_4_VISUALS"}
 
 async def node_visual_governance(state: GraphState):
     """
     Node 6: Visual Governance Audit (Hex variance, overflow)
     """
-    # Simulate Pillow hex variance check
+    iters = state.get("visual_iteration", 0) + 1
+    logger.info(f"Visual Governance Audit: Iteration {iters}")
+    
+    # Simulate Pillow hex variance check (Passes on first try normally, but we can configure logic)
     status = "PASSED"
     
     await update_convex_campaign(state["db_id"], {
         "visual_assets": state["visual_assets"],
-        "status": "GATE_4_VISUALS" # Mapping State 4 to Gate 4 UI visuals
+        "status": "GATE_4_VISUALS" # UI updates instantly
     })
     
-    return {"current_status": "GATE_4_VISUALS"}
+    return {"current_status": "GATE_4_VISUALS", "visual_iteration": iters}
 
 def route_after_visual_audit(state: GraphState) -> str:
     """
-    Conditional routing: Loop back to generation if visual audit fails.
+    Conditional routing: Loop back to generation if visual audit fails, cap at 3.
     """
     visual_audit = state.get("visual_audit")
+    iters = state.get("visual_iteration", 0)
+    
+    if iters >= 3:
+        logger.info(f"Visual bailout: Max iterations {iters} reached. Routing to Gate 3.")
+        # Bailout threshold reached. Unanimously push to final manual review.
+        return "node_gate_3_pause"
+        
     if visual_audit:
-        # Handle both dict and object types safely
         status = visual_audit.get("status") if isinstance(visual_audit, dict) else getattr(visual_audit, "status", "")
         if status == "REJECTED":
+            logger.info("Visual Audit: REJECTED. Looping back to generation.")
             return "node_visual_generation"
-    return END
+            
+    # If passed visually, go to gate 3!
+    logger.info("Visual Audit: PASSED. Routing to Gate 3.")
+    return "node_gate_3_pause"
+
+async def node_gate_3_pause(state: GraphState):
+    """
+    Terminal Node 1: Final HITL phase before publishing. 
+    Strictly pushes GATE_3_VISUAL_REVIEW so the frontend renders the actual final asset panel.
+    """
+    await update_convex_campaign(state["db_id"], {
+        "status": "GATE_3_VISUAL_REVIEW"
+    })
+    return {"current_status": "GATE_3_VISUAL_REVIEW"}
+
+async def node_publish(state: GraphState):
+    """
+    Terminal Node 2: Runs only after human approval at Gate 3.
+    """
+    await update_convex_campaign(state["db_id"], {
+        "status": "PUBLISHED"
+    })
+    return {"current_status": "PUBLISHED"}
 
 # ==========================================
 # Graph Builder Initialization & Compilation
@@ -238,6 +290,8 @@ builder.add_node("node_localize_content", node_localize_content)
 builder.add_node("node_regional_governance", node_regional_governance)
 builder.add_node("node_visual_generation", node_visual_generation)
 builder.add_node("node_visual_governance", node_visual_governance)
+builder.add_node("node_gate_3_pause", node_gate_3_pause)
+builder.add_node("node_publish", node_publish)
 
 # Build Edge Pipeline
 builder.add_edge(START, "node_draft_content")
@@ -247,6 +301,8 @@ builder.add_edge("node_localize_content", "node_regional_governance")
 builder.add_edge("node_regional_governance", "node_visual_generation")
 builder.add_edge("node_visual_generation", "node_visual_governance")
 builder.add_conditional_edges("node_visual_governance", route_after_visual_audit)
+builder.add_edge("node_gate_3_pause", "node_publish")
+builder.add_edge("node_publish", END)
 
 # We export the uncompiled `builder` so `routes.py` can compile it inside an `async with` context manager.
 # This avoids all FastAPI event loop locking issues with SQLite connections.

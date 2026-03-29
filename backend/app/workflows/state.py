@@ -14,9 +14,10 @@ class GraphState(TypedDict):
     locked_master_text: str
     enable_localization: bool
     selected_language: str
-    localized_texts: dict[str, str]
+    localized_texts: dict[str, Any]
     regional_audit: dict[str, str] # LQA results per locale
     visual_assets: list[dict[str, str]]
     visual_audit: VisualGovernanceAudit
+    visual_iteration: int # Bailout limit check
     feedback: str # Human feedback for regeneration
     current_status: str

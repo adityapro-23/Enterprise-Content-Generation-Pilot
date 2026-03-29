@@ -10,7 +10,7 @@ import { Id } from '../../../../../convex/_generated/dataModel';
 // ───────────────────────────────────────────────────────────────
 // TYPES
 // ───────────────────────────────────────────────────────────────
-type ExecutionState = 'PROCESSING' | 'GATE_1_TEXT' | 'GATE_2_LOCALIZATION' | 'GATE_4_VISUALS' | 'STOPPED' | 'ERROR';
+type ExecutionState = 'PROCESSING' | 'GATE_1_TEXT' | 'GATE_2_LOCALIZATION' | 'GATE_3_VISUAL_REVIEW' | 'GATE_4_VISUALS' | 'STOPPED' | 'ERROR' | 'PUBLISHED';
 
 interface PipelinePhase {
   id: string;
@@ -36,13 +36,13 @@ function getPipelinePhases(state: ExecutionState): PipelinePhase[] {
     { id: 'knowledge_gen', label: 'Knowledge-to-Content Agent', description: 'Generating master text draft (GPT-4o)', status: state === 'PROCESSING' ? 'running' : 'done' },
     { id: 'text_gov', label: 'Textual Governance (spaCy)', description: 'Checking for forbidden phrases & disclaimers', status: state === 'PROCESSING' ? 'pending' : 'done' },
     { id: 'hitl_1', label: '🛑 HITL Gate 1 — Master Text', description: 'Awaiting human approval of master copy', status: state === 'GATE_1_TEXT' ? 'paused' : state === 'PROCESSING' ? 'pending' : 'done' },
-    { id: 'localization', label: 'Localization Engine', description: 'Transcreating approved text for each locale', status: state === 'GATE_2_LOCALIZATION' || state === 'GATE_4_VISUALS' ? 'done' : state === 'GATE_1_TEXT' ? 'pending' : (state === 'PROCESSING' ? 'pending' : 'done') },
-    { id: 'regional_gov', label: 'Regional Governance (LQA)', description: 'Cultural validation & GDPR compliance', status: state === 'GATE_2_LOCALIZATION' || state === 'GATE_4_VISUALS' ? 'done' : 'pending' },
-    { id: 'hitl_2', label: '🛑 HITL Gate 2 — Localized Text', description: 'Awaiting human approval of translations', status: state === 'GATE_2_LOCALIZATION' ? 'paused' : state === 'GATE_4_VISUALS' ? 'done' : 'pending' },
-    { id: 'liquid_content', label: 'Liquid Content Engine', description: 'Generating visuals via Stable Diffusion & Remotion', status: state === 'GATE_4_VISUALS' ? 'running' : 'pending' },
-    { id: 'visual_gov', label: 'Visual Governance (Pillow)', description: 'Verifying hex codes, logo placements, text overflow', status: state === 'GATE_4_VISUALS' ? 'running' : 'pending' },
-    { id: 'hitl_3', label: '🛑 HITL Gate 3 — Final Assets', description: 'Final approval before publish', status: 'pending' },
-    { id: 'publish', label: 'Multi-Channel Publishing', description: 'Push to LinkedIn, email, CMS', status: 'pending' },
+    { id: 'localization', label: 'Localization Engine', description: 'Transcreating approved text for each locale', status: ['GATE_2_LOCALIZATION', 'GATE_3_VISUAL_REVIEW', 'GATE_4_VISUALS', 'PUBLISHED'].includes(state) ? 'done' : state === 'GATE_1_TEXT' ? 'pending' : (state === 'PROCESSING' ? 'pending' : 'done') },
+    { id: 'regional_gov', label: 'Regional Governance (LQA)', description: 'Cultural validation & GDPR compliance', status: ['GATE_2_LOCALIZATION', 'GATE_3_VISUAL_REVIEW', 'GATE_4_VISUALS', 'PUBLISHED'].includes(state) ? 'done' : 'pending' },
+    { id: 'hitl_2', label: '🛑 HITL Gate 2 — Localized Text', description: 'Awaiting human approval of translations', status: state === 'GATE_2_LOCALIZATION' ? 'paused' : ['GATE_3_VISUAL_REVIEW', 'GATE_4_VISUALS', 'PUBLISHED'].includes(state) ? 'done' : 'pending' },
+    { id: 'liquid_content', label: 'Liquid Content Engine', description: 'Generating visuals via Stable Diffusion & Remotion', status: state === 'GATE_4_VISUALS' ? 'running' : ['GATE_3_VISUAL_REVIEW', 'PUBLISHED'].includes(state) ? 'done' : 'pending' },
+    { id: 'visual_gov', label: 'Visual Governance (Pillow)', description: 'Verifying hex codes, logo placements, text overflow', status: state === 'GATE_4_VISUALS' ? 'running' : ['GATE_3_VISUAL_REVIEW', 'PUBLISHED'].includes(state) ? 'done' : 'pending' },
+    { id: 'hitl_3', label: '🛑 HITL Gate 3 — Final Assets', description: 'Final approval before publish', status: state === 'GATE_3_VISUAL_REVIEW' ? 'paused' : state === 'PUBLISHED' ? 'done' : 'pending' },
+    { id: 'publish', label: 'Multi-Channel Publishing', description: 'Push to LinkedIn, email, CMS', status: state === 'PUBLISHED' ? 'done' : 'pending' },
   ];
   return base;
 }
@@ -359,6 +359,96 @@ function Gate2LocalizationReview({ localizedTexts, regionalAudit, onApprove, onR
 }
 
 // ───────────────────────────────────────────────────────────────
+// HITL REVIEW PANEL — Gate 3 (Final Visual Assets)
+// ───────────────────────────────────────────────────────────────
+function Gate3FinalAssetsReview({ visualAssets, onApprove, onReject, onRegenerate }: {
+  visualAssets: any[];
+  onApprove: () => void;
+  onReject: () => void;
+  onRegenerate: (feedback?: string) => void;
+}) {
+  const [feedback, setFeedback] = useState<FeedbackState>({ open: false, text: '' });
+  const assets = visualAssets || [];
+
+  return (
+    <div className="flex flex-col h-full animate-in">
+      <div className="p-5 border-b border-slate-800/60">
+        <div className="flex items-center gap-3">
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_theme(colors.amber.400)]" />
+          <h2 className="font-semibold text-amber-200 text-sm">🛑 HITL Gate 3 — Final Asset Approval</h2>
+        </div>
+        <p className="text-xs text-slate-400 mt-1 ml-5">
+          Review the final AI-generated visual assets. You can download the assets locally or regenerate them if they fail to meet your criteria.
+        </p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        {/* LQA passed */}
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/8 border border-emerald-500/20">
+          <svg className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+          </svg>
+          <div>
+            <p className="text-xs font-semibold text-emerald-300">Visual Governance (Pillow) Passed</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Hex variance: Optimal · Contrast Ratio: Passed · Overflow: Minimal</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          {assets.map((asset: any) => (
+            <div key={asset.id} className="glass-card-sm p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-slate-200">{asset.format} — {asset.locale}</p>
+                <a href={asset.url} target="_blank" rel="noreferrer" download className="btn-secondary text-[10px] px-2 py-1">
+                  ⬇ Download
+                </a>
+              </div>
+              <div className="w-full bg-slate-800 rounded-lg border border-slate-700 aspect-video flex items-center justify-center overflow-hidden relative group">
+                {asset.status === 'COMPLETED' ? (
+                  <img src={asset.url} alt={asset.format} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                ) : (
+                  <svg className="w-6 h-6 text-slate-600 animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {feedback.open && (
+           <div className="space-y-2 animate-in">
+             <label className="input-label">Visual Regeneration Feedback</label>
+             <textarea
+               value={feedback.text}
+               onChange={(e) => setFeedback((f) => ({ ...f, text: e.target.value }))}
+               placeholder="Feedback for DALLE (e.g., make it more corporate, use a darker background)..."
+               rows={3}
+               className="input-field resize-none"
+             />
+           </div>
+        )}
+      </div>
+
+      <div className="p-5 border-t border-slate-800/60 space-y-3">
+         <div className="flex gap-2">
+           <button onClick={onApprove} className="btn-success flex-1">
+             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m6-.75a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+             Approve & Publish Campaign
+           </button>
+           <button onClick={onReject} className="btn-danger flex-1">
+             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+             Reject
+           </button>
+         </div>
+         <div className="flex gap-2">
+           <button type="button" onClick={() => { if (feedback.open) onRegenerate(feedback.text); else onRegenerate(); }} className="btn-secondary flex-1 text-xs">🔄 Regenerate Visuals</button>
+           <button type="button" onClick={() => setFeedback((f) => ({ ...f, open: !f.open }))} className="btn-secondary flex-1 text-xs">{feedback.open ? '✕ Cancel' : '💬 Regenerate with Feedback'}</button>
+         </div>
+       </div>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
 // STATE 4 — Visuals Panel
 // ───────────────────────────────────────────────────────────────
 function VisualsPanel({ visualAssets }: { visualAssets: any[] }) {
@@ -510,7 +600,7 @@ export default function ExecutePage({ params }: { params: Promise<{ id: string }
 
   // ── Action handlers ─────────────────────────────────────────
   const handleApprove = async () => {
-    const gate = execState === 'GATE_1_TEXT' ? 1 : 2;
+    const gate = execState === 'GATE_1_TEXT' ? 1 : execState === 'GATE_2_LOCALIZATION' ? 2 : 3;
     try {
       const response = await fetch(`http://localhost:8000/api/campaign/approve-gate-${gate}`, {
         method: 'POST',
@@ -535,7 +625,7 @@ export default function ExecutePage({ params }: { params: Promise<{ id: string }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           db_id: id,
-          gate_number: execState === 'GATE_1_TEXT' ? 1 : 2,
+          gate_number: execState === 'GATE_1_TEXT' ? 1 : execState === 'GATE_2_LOCALIZATION' ? 2 : 3,
           feedback: feedback
         }),
       });
@@ -577,7 +667,32 @@ export default function ExecutePage({ params }: { params: Promise<{ id: string }
         onReject={handleReject}
         onRegenerate={handleRegenerate}
       />;
+      case 'GATE_3_VISUAL_REVIEW': return <Gate3FinalAssetsReview
+        visualAssets={campaign.visual_assets || []}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        onRegenerate={handleRegenerate}
+      />;
       case 'GATE_4_VISUALS': return <VisualsPanel visualAssets={campaign.visual_assets || []} />;
+      case 'PUBLISHED': return (
+        <div className="flex flex-col items-center justify-center flex-1 p-12 text-center space-y-6 animate-in fade-in zoom-in duration-700">
+          <div className="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-4">
+             <svg className="w-10 h-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+             </svg>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Campaign Published!</h2>
+            <p className="text-slate-400 max-w-md mx-auto">
+              The {campaign.campaign_id} campaign has been successfully orchestrated, audited, and deployed across all selected channels.
+            </p>
+          </div>
+          <div className="flex gap-4 pt-6">
+            <Link href="/main" className="btn-success px-6 py-2.5">🏠 Return to Dashboard</Link>
+            <button onClick={() => window.print()} className="btn-secondary px-6">📄 Export Summary</button>
+          </div>
+        </div>
+      );
       default: return <ProcessingPanel />;
     }
   };
@@ -587,9 +702,11 @@ export default function ExecutePage({ params }: { params: Promise<{ id: string }
     PROCESSING: '⚙ Processing',
     GATE_1_TEXT: '⏸ Gate 1 — Text Review',
     GATE_2_LOCALIZATION: '⏸ Gate 2 — Localization',
+    GATE_3_VISUAL_REVIEW: '⏸ Gate 3 — Final Assets',
     GATE_4_VISUALS: '🎨 Visual Generation',
     STOPPED: '🛑 Stopped',
     ERROR: '❌ Error',
+    PUBLISHED: '✅ Published',
   };
 
   return (

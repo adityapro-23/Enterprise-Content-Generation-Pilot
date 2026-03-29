@@ -67,6 +67,7 @@ async def initiate_campaign(req: InitiateRequest, background_tasks: BackgroundTa
             "regional_audit": {},
             "visual_assets": [],
             "visual_audit": None,
+            "visual_iteration": 0,
             "feedback": "",
             "assets": req.assets,
             "current_status": "PROCESSING"
@@ -80,7 +81,7 @@ async def initiate_campaign(req: InitiateRequest, background_tasks: BackgroundTa
                 async with AsyncSqliteSaver.from_conn_string(_DB_PATH) as checkpointer:
                     graph_app = builder.compile(
                         checkpointer=checkpointer,
-                        interrupt_before=["node_localize_content", "node_visual_generation"]
+                        interrupt_before=["node_localize_content", "node_visual_generation", "node_publish"]
                     )
                     await graph_app.ainvoke(initial_state, config)
             except Exception as e:
@@ -105,7 +106,7 @@ async def handle_gate_resume(db_id: str, feedback: Optional[str], gate_number: O
         async with AsyncSqliteSaver.from_conn_string(_DB_PATH) as checkpointer:
             graph_app = builder.compile(
                 checkpointer=checkpointer,
-                interrupt_before=["node_localize_content", "node_visual_generation"]
+                interrupt_before=["node_localize_content", "node_visual_generation", "node_publish"]
             )
             
             state_info = await graph_app.aget_state(config)
@@ -114,8 +115,14 @@ async def handle_gate_resume(db_id: str, feedback: Optional[str], gate_number: O
                 raise HTTPException(status_code=400, detail="Campaign not in a waiting state")
 
             if feedback:
-                target_node = "node_draft_content" if gate_number == 1 else "node_localize_content"
-                await graph_app.aupdate_state(config, {"feedback": feedback}, as_node=target_node)
+                if gate_number == 1:
+                    target_node = "node_draft_content"
+                elif gate_number == 2:
+                    target_node = "node_localize_content"
+                else:
+                    target_node = "node_regional_governance" # Gate 3 reject: route to next available edge generator
+
+                await graph_app.aupdate_state(config, {"feedback": feedback, "visual_iteration": 0}, as_node=target_node)
             else:
                 if gate_number == 1:
                     locked_text = state_info.values.get("draft_text", "")
@@ -124,8 +131,11 @@ async def handle_gate_resume(db_id: str, feedback: Optional[str], gate_number: O
                         {"locked_master_text": locked_text, "feedback": ""},
                         as_node="node_text_governance"
                     )
-                else:
+                elif gate_number == 2:
                     await graph_app.aupdate_state(config, {"feedback": ""}, as_node="node_regional_governance")
+                elif gate_number == 3:
+                     # Gate 3 approval — clear feedback and resume to node_publish
+                    await graph_app.aupdate_state(config, {"feedback": ""}, as_node="node_gate_3_pause")
 
             # Fire resume sequentially afterwards using its own instance
             async def resume_graph():
@@ -133,7 +143,7 @@ async def handle_gate_resume(db_id: str, feedback: Optional[str], gate_number: O
                     async with AsyncSqliteSaver.from_conn_string(_DB_PATH) as checkpointer_resume:
                         graph_app_resume = builder.compile(
                             checkpointer=checkpointer_resume,
-                            interrupt_before=["node_localize_content", "node_visual_generation"]
+                            interrupt_before=["node_localize_content", "node_visual_generation", "node_publish"]
                         )
                         await graph_app_resume.ainvoke(None, config)
                 except Exception as e:
@@ -160,6 +170,10 @@ async def approve_gate_1(req: GateRequest, background_tasks: BackgroundTasks):
 async def approve_gate_2(req: GateRequest, background_tasks: BackgroundTasks):
     return await handle_gate_resume(req.db_id, None, 2, background_tasks)
 
+@router.post("/api/campaign/approve-gate-3")
+async def approve_gate_3(req: GateRequest, background_tasks: BackgroundTasks):
+    return await handle_gate_resume(req.db_id, None, 3, background_tasks)
+
 @router.post("/api/campaign/reject-gate")
 async def reject_gate(req: GateRequest, background_tasks: BackgroundTasks):
     return await handle_gate_resume(req.db_id, req.feedback, req.gate_number, background_tasks)
@@ -171,7 +185,7 @@ async def stop_campaign(req: StopRequest):
         async with AsyncSqliteSaver.from_conn_string(_DB_PATH) as checkpointer:
             graph_app = builder.compile(
                 checkpointer=checkpointer,
-                interrupt_before=["node_localize_content", "node_visual_generation"]
+                interrupt_before=["node_localize_content", "node_visual_generation", "node_publish"]
             )
             await graph_app.aupdate_state(config, {"current_status": "STOPPED"}, as_node=None)
         return {"status": "success", "message": "Campaign execution stopped."}
