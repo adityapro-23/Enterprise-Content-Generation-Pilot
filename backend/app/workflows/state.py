@@ -1,15 +1,13 @@
-from typing import TypedDict, Annotated, Dict, List, Optional
+from typing import TypedDict, Dict, List, Optional, Any
 import operator
 
-from app.models.campaign import CampaignBrief
-from app.models.admin_rules import ComplianceRules
 from app.models.governance import TextualGovernanceAudit, VisualGovernanceAudit
 
 class GraphState(TypedDict):
     campaign_id: str
     db_id: str  # Convex ID
-    brief: CampaignBrief
-    compliance_rules: ComplianceRules
+    brief: dict          # stored as plain dict via .model_dump() for LangGraph serialization
+    compliance_rules: dict  # stored as plain dict via .model_dump() for LangGraph serialization
     assets: list[dict]
     draft_text: str
     text_audit: TextualGovernanceAudit

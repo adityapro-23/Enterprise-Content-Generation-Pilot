@@ -52,8 +52,8 @@ async def initiate_campaign(req: InitiateRequest, background_tasks: BackgroundTa
         initial_state: GraphState = {
             "campaign_id": req.campaign_id,
             "db_id": req.db_id,
-            "brief": brief,
-            "compliance_rules": compliance_rules,
+            "brief": brief.model_dump(),           # FIXED: Store as plain dict for LangGraph serialization
+            "compliance_rules": compliance_rules.model_dump(),  # FIXED: Store as plain dict
             "draft_text": "",
             "text_audit": None,
             "locked_master_text": "",
@@ -64,7 +64,7 @@ async def initiate_campaign(req: InitiateRequest, background_tasks: BackgroundTa
             "visual_assets": [],
             "visual_audit": None,
             "feedback": "",
-            "assets": req.assets,  # FIXED: Initialize assets in state
+            "assets": req.assets,
             "current_status": "PROCESSING"
         }
 
@@ -97,12 +97,24 @@ async def handle_gate_resume(db_id: str, feedback: Optional[str], gate_number: O
     if not state_info.next:
         raise HTTPException(status_code=400, detail="Campaign not in a waiting state")
 
-    target_node = "node_draft_content" if gate_number == 1 else "node_localize_content"
-    # Always update the state as_node so LangGraph rewinds and regenerates
-    # Even if feedback is empty, we must rewind.
-    await graph_app.aupdate_state(config, {"feedback": feedback or ""}, as_node=target_node)
+    if feedback:
+        # REJECT / REGENERATE: Rewind to the drafting node so the agent regenerates with feedback
+        target_node = "node_draft_content" if gate_number == 1 else "node_localize_content"
+        await graph_app.aupdate_state(config, {"feedback": feedback}, as_node=target_node)
+    else:
+        # APPROVE: Lock the current text and resume forward — do NOT rewind
+        if gate_number == 1:
+            locked_text = state_info.values.get("draft_text", "")
+            await graph_app.aupdate_state(
+                config,
+                {"locked_master_text": locked_text, "feedback": ""},
+                as_node="node_text_governance"
+            )
+        else:
+            # Gate 2 approval — just clear feedback and resume
+            await graph_app.aupdate_state(config, {"feedback": ""}, as_node="node_regional_governance")
 
-    # FIXED: Catch graph crashes and update UI
+    # Catch graph crashes and surface them to the UI
     async def resume_graph():
         try:
             await graph_app.ainvoke(None, config)
