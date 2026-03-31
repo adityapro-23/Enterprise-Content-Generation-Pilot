@@ -1,6 +1,8 @@
-# ECGP - Enterprise Content Generation Pilot
+# Enterprise Content Generation Pilot (ECGP)
 
-**Team VicRaptors** · ET GenAI Hackathon Phase 2  
+### *Autonomous Multi-Agent Governance Pipeline*
+
+**Team VicRaptors** · ET GenAI Hackathon
 Vinayak Gawade · Aditya Patil · Advait Ithape · Amit Kumar Singh
 
 ---
@@ -29,9 +31,9 @@ Vinayak Gawade · Aditya Patil · Advait Ithape · Amit Kumar Singh
 
 Enterprise content operations remain agency-dependent and manually intensive despite the rapid growth of Generative AI. Three critical gaps define the market:
 
-- **Cost of Manual Workflows** - Traditional pipelines inflate costs to `$500–$1,200+` per campaign and extend cycle times to `14+ days`
-- **Governance Deficit** - Foundational LLMs are probabilistic and cannot enforce binary compliance rules, exposing enterprises to regulatory liability
-- **No End-to-End Autonomous System** - Existing tools (Jasper, Copy.ai) are assistive wrappers with no unified infrastructure for creation, compliance, localization, and publishing in one governed workflow
+- **Cost of Manual Workflows** — Traditional pipelines inflate costs to `$500–$1,200+` per campaign and extend cycle times to `14+ days`
+- **Governance Deficit** — Foundational LLMs are probabilistic and cannot enforce binary compliance rules, exposing enterprises to regulatory liability
+- **No End-to-End Autonomous System** — Existing tools are assistive wrappers with no unified infrastructure for creation, compliance, localization, and publishing in one governed workflow
 
 ---
 
@@ -40,12 +42,12 @@ Enterprise content operations remain agency-dependent and manually intensive des
 ECGP introduces a paradigm shift: **from assistive AI to autonomous, self-regulating infrastructure**.
 
 The core innovation is a strict architectural separation between:
-- **Probabilistic AI agents** - handle creativity, drafting, localization, and visual composition
-- **Deterministic governance scripts** - enforce brand rules, legal compliance, and pixel-level verification mathematically
+- **Probabilistic AI agents** — handle creativity, drafting, localization, and visual composition
+- **Deterministic governance scripts** — enforce brand rules, legal compliance, and pixel-level verification mathematically
 
 Neither layer can override the other. This makes compliance a **mathematical guarantee**, not a probabilistic hope.
 
-**Results:**
+### Results
 
 | Metric | Traditional | ECGP |
 |---|---|---|
@@ -59,60 +61,59 @@ Neither layer can override the other. This makes compliance a **mathematical gua
 
 ## System Architecture
 
-ECGP is structured across **7 layers** with a standalone HITL Gate node. Architecture enforces strict sequential data flow - text is fully approved and cryptographically locked before visual generation begins.
+ECGP is structured across **7 layers** with a standalone HITL Gate node. Architecture enforces strict sequential data flow — text is fully approved and cryptographically locked before visual generation begins.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                      CLIENT LAYER                       │
-│  Admin Console · Campaign Studio · HITL Interface ·     │
-│  Analytics Dashboard                                    │
+│   Workspace Setup · Campaign Studio · HITL Dashboard   │
 └──────────────────────────┬──────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────┐
 │               ENTERPRISE KNOWLEDGE LAYER                │
-│  Enterprise Persona Store (200-token) ·                 │
-│  Workspace Config Store (immutable)                     │
+│   Enterprise Persona Store (200-token) ·                │
+│   Workspace Config Store (immutable)                    │
 └──────────────────────────┬──────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────┐
 │                  ORCHESTRATION LAYER                    │
 │  ┌─────────────┐    ┌───────────────────────────────┐   │
 │  │ API Gateway │    │     Pipeline Orchestrator     │   │
-│  │             │    │     (LangGraph State Machine) │   │
+│  │             │    │    (LangGraph State Machine)  │   │
 │  └─────────────┘    └───────────────────────────────┘   │
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐    │
 │  │           GOVERNANCE LAYER (Deterministic)      │    │
-│  │  Textual Governor · Regional Governor ·         │    │
-│  │  Visual Governor                                │    │
+│  │   Textual Governor · Regional Governor ·        │    │
+│  │   Visual Governor                               │    │
 │  └─────────────────────────────────────────────────┘    │
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐    │
 │  │           INTELLIGENCE LAYER (LLM Agents)       │    │
-│  │  Content Drafting Agent · Localization Agent ·  │    │
-│  │  Visual Composition Agent                       │    │
+│  │   Content Drafting Agent · Localization Agent · │    │
+│  │   Visual Composition Agent                      │    │
 │  └─────────────────────────────────────────────────┘    │
 └──────────────────────────┬──────────────────────────────┘
                            │
           ┌────────────────┼────────────────┐
           │                │                │
-┌─────────▼──────┐ ┌───────▼──────┐ ┌──────▼──────────┐
-│ STATE & MEMORY │ │ DATA INGEST. │ │  HITL GATE      │
-│ Vector KB      │ │ Ingestion    │ │  Gate 1 · 2 · 3 │
-│ Content Store  │ │ Connector    │ │  (Human Review) │
-│ Translation    │ └──────────────┘ └─────────────────┘
+┌─────────▼──────┐ ┌───────▼──────┐ ┌──────▼─────────┐
+│ STATE & MEMORY │ │ DATA INGEST. │ │   HITL GATE    │
+│ Vector KB      │ │ Ingestion    │ │ Gate 1 · 2 · 3 │
+│ Content Store  │ │ Connector    │ │ (Human Review) │
+│ Translation    │ └──────────────┘ └────────────────┘
 │ Memory         │
 └────────────────┘
           │
 ┌─────────▼──────────────────────────────────────────────┐
 │                    PUBLISHING LAYER                    │
-│  Publishing Agent (OAuth per channel)                  │
+│   Publishing Agent (OAuth per channel)                 │
 └─────────────────────────┬──────────────────────────────┘
                           │
-┌─────────────────────────▼───────────────────────────────┐
-│                   OBSERVATION LAYER                     │
-│  Performance Analyzer · Strategy Optimizer (OODA)       │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────▼──────────────────────────────┐
+│                   OBSERVATION LAYER                    │
+│   Performance Analyzer · Strategy Optimizer (OODA)     │
+└────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -120,53 +121,46 @@ ECGP is structured across **7 layers** with a standalone HITL Gate node. Archite
 ## Tech Stack
 
 ### Orchestration & Backend
-![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
-![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?style=flat&logo=langchain&logoColor=white)
-![LangSmith](https://img.shields.io/badge/LangSmith-1C3C3C?style=flat&logo=langchain&logoColor=white)
 
-- **FastAPI** - Async backend handling long-running AI tasks without timeouts
-- **LangGraph** - Cyclic state machine managing multi-agent pipeline, HITL checkpointing, and revision loops
-- **LangSmith** - Full observability — every LLM call, token count, and governance rejection is traced
+| Tool | Purpose |
+|---|---|
+| **FastAPI** | Async backend handling long-running AI tasks without timeouts, managing background tasks |
+| **LangGraph** | Cyclic state machine managing multi-agent pipeline, HITL checkpointing, and visual revision loops |
+| **LangSmith** | Full observability — every LLM call, token count, and governance rejection is traced |
 
 ### AI & Semantic Layer
-![Gemini](https://img.shields.io/badge/Gemini_API-4285F4?style=flat&logo=google&logoColor=white)
-![Qdrant](https://img.shields.io/badge/Qdrant-DC244C?style=flat&logo=qdrant&logoColor=white)
 
-- **Gemini API** - Powers Content Drafting Agent and Localization Agent
-- **Qdrant** - Vector database storing embedded enterprise knowledge (Jira, SharePoint, CRM)
-- **RAG Pipeline** - Retrieval-Augmented Generation for hyper-relevant enterprise context injection
+| Tool | Purpose |
+|---|---|
+| **OpenAI API (GPT-4o)** | Powers the Content Drafting Agent and Localization/Transcreation Agent |
+| **Qdrant** | Vector database storing embedded enterprise knowledge (uploaded assets, campaign briefs) |
+| **RAG Pipeline** | Strict fallback retrieval system for injecting hyper-relevant user context |
 
 ### Governance Engines
-![spaCy](https://img.shields.io/badge/spaCy-09A3D5?style=flat&logo=spacy&logoColor=white)
-![Pillow](https://img.shields.io/badge/Pillow-Python-blue?style=flat)
 
-- **spaCy + Regex** - Textual Governor: forbidden phrase detection, mandatory disclaimer verification
-- **Pillow (PIL)** - Visual Governor: pixel-level RGB hex verification and logo placement analysis
+| Tool | Purpose |
+|---|---|
+| **spaCy + Regex** | Textual Governor: forbidden phrase detection, mandatory disclaimer verification |
+| **Pillow (PIL)** | Visual Governor: pixel-level image verification and iterative refinement routing |
 
 ### Frontend
-![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
-![Tailwind](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
 
-- **Next.js + TypeScript** - Admin Console, Campaign Studio, HITL Review Interface, Analytics Dashboard
-- **Tailwind CSS + Shadcn UI** - Split-screen text reviewers, masonry asset grids, telemetry charts
+| Tool | Purpose |
+|---|---|
+| **Next.js + TypeScript** | App Router powering the Main Dashboard, Workspace Setup, and Campaign Studio |
+| **Tailwind CSS + Glassmorphism** | Highly responsive, modern aesthetic UI with real-time execution states |
 
 ### State & Real-Time Sync
-![Convex](https://img.shields.io/badge/Convex-EF4444?style=flat&logo=convex&logoColor=white)
 
-- **Convex** - Reactive primary database; pushes pipeline state changes to frontend instantly at every HITL gate without polling
+| Tool | Purpose |
+|---|---|
+| **Convex** | Reactive primary database; pushes pipeline state changes from Python backend to Next.js frontend instantly via WebSockets at every HITL gate |
 
 ### Visual Generation
-![Stable Diffusion](https://img.shields.io/badge/Stable_Diffusion-FF6B6B?style=flat)
-![Remotion](https://img.shields.io/badge/Remotion-000000?style=flat)
 
-- **Stable Diffusion (Hugging Face)** - Pixel-level image generation
-- **Remotion** - Programmatic video rendering using locked, character-counted text strings
-
-### Infrastructure
-![AWS](https://img.shields.io/badge/AWS_EC2-FF9900?style=flat&logo=amazon-aws&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
+| Tool | Purpose |
+|---|---|
+| **OpenAI DALL-E 3** | Generates high-fidelity visual assets guided by locked master text and brand constraints |
 
 ---
 
@@ -174,56 +168,41 @@ ECGP is structured across **7 layers** with a standalone HITL Gate node. Archite
 
 ```
 ecgp-workspace/
-├── frontend/                          # Next.js UI & Convex Database
+├── frontend/                           # Next.js UI & Convex Database
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── (admin)/               # Phase 0: Workspace Setup UI
-│   │   │   ├── (marketing)/           # Phase 1: Campaign Initiation UI
-│   │   │   └── (review)/              # HITL Gates 1, 2, 3 UI
-│   │   ├── components/
-│   │   │   ├── ui/                    # Buttons, Inputs, Modals (Shadcn)
-│   │   │   └── ecgp/                  # Split-screen reviewers, masonry grids
-│   │   ├── lib/                       # Utility functions & API callers
-│   │   └── hooks/                     # Custom React hooks
+│   │   │   ├── main/                   # Main Dashboard
+│   │   │   ├── workspace/              # Phase 0: Rules, Guidelines, Configs
+│   │   │   └── campaigns/              # Phase 1: Initiation & Phase 2–4: Execution
+│   │   │       ├── new/                # Campaign Builder
+│   │   │       └── [id]/execute/       # Real-time Orchestration UI & HITL Gates
+│   │   └── components/ui/              # Shared UI components
 │   ├── convex/
-│   │   ├── schema.ts                  # Convex table definitions
-│   │   ├── campaigns.ts               # Campaign CRUD operations
-│   │   └── workspace.ts               # Admin rules CRUD operations
+│   │   ├── schema.ts                   # Convex table definitions
+│   │   ├── campaigns.ts                # Campaign CRUD & state mutations
+│   │   └── workspace.ts                # Admin rules CRUD operations
 │   ├── package.json
 │   └── tailwind.config.js
 │
-├── backend/                           # FastAPI + LangGraph + AI Agents
+├── backend/                            # FastAPI + LangGraph + AI Agents
 │   ├── app/
-│   │   ├── api/                       # FastAPI endpoints
-│   │   │   └── routes/                # /initiate-campaign, /webhooks, etc.
-│   │   ├── agents/                    # Isolated AI agent logic
-│   │   │   ├── content_drafting.py    # Content Drafting Agent (Gemini)
-│   │   │   ├── textual_governor.py    # Textual Governor (spaCy + regex)
-│   │   │   ├── localization.py        # Localization Agent (Gemini)
-│   │   │   ├── regional_governor.py   # Regional Governor (spaCy + rules)
-│   │   │   ├── visual_composition.py  # Visual Composition Agent
-│   │   │   └── visual_governor.py     # Visual Governor (Pillow)
-│   │   ├── workflows/                 # LangGraph State Machines
-│   │   │   ├── state.py               # Master campaign state object
-│   │   │   └── main_graph.py          # Pipeline routing + HITL checkpoints
-│   │   ├── models/                    # Pydantic schemas (typed payloads)
-│   │   │   ├── campaign.py            # Campaign state model
-│   │   │   ├── admin_rules.py         # Workspace config model
-│   │   │   └── governance.py          # Governance result payload model
-│   │   ├── services/                  # External service connectors
-│   │   │   ├── gemini_client.py       # Gemini API client
-│   │   │   ├── qdrant_client.py       # Qdrant vector DB client
-│   │   │   └── convex_sync.py         # Convex real-time sync
-│   │   └── core/                      # Config, env vars, LangSmith setup
+│   │   ├── api/
+│   │   │   └── routes.py               # /initiate, /approve-gate, /stop
+│   │   ├── agents/
+│   │   │   ├── knowledge_to_content.py # Content Drafting Agent (GPT-4o)
+│   │   │   ├── textual_governance.py   # Textual Governor (spaCy + regex)
+│   │   │   ├── localization.py         # Localization Agent (GPT-4o)
+│   │   │   ├── visual_governance.py    # Visual Governor (Pillow)
+│   │   │   └── ...
+│   │   ├── workflows/
+│   │   │   ├── state.py                # Master campaign state object (TypedDict)
+│   │   │   └── main_graph.py           # 6-Node pipeline routing + HITL checkpoints
+│   │   ├── models/                     # Pydantic schemas
+│   │   ├── services/
+│   │   │   └── convex_sync.py          # Async Convex real-time sync
+│   │   └── core/                       # Configs & env handlers
 │   ├── requirements.txt
-│   └── main.py                        # FastAPI application entry point
-│
-├── infrastructure/                    # Deployment configurations
-│   ├── docker/
-│   │   ├── backend.Dockerfile
-│   │   └── docker-compose.yml         # Local Qdrant + FastAPI setup
-│   └── aws/
-│       └── ec2_setup.sh               # EC2 provisioning scripts
+│   └── main.py                         # FastAPI entry point
 │
 ├── .gitignore
 └── README.md
@@ -237,9 +216,7 @@ ecgp-workspace/
 
 - Python 3.11+
 - Node.js 18+
-- Docker & Docker Compose
-- AWS account (for EC2 deployment)
-- API keys: Gemini, Qdrant Cloud, Convex, Hugging Face
+- API keys: OpenAI, Convex
 
 ### 1. Clone the Repository
 
@@ -260,9 +237,9 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment variables
-cp .env.example .env
-# Edit .env with your API keys (see Environment Variables section below)
+# Create environment file
+touch .env
+# Edit .env with your API keys (see Environment Variables below)
 
 # Start the backend server
 uvicorn main:app --reload --port 8000
@@ -276,70 +253,56 @@ cd frontend
 # Install dependencies
 npm install
 
-# Configure environment variables
-cp .env.local.example .env.local
-# Add your Convex deployment URL and other keys
-
-# Run development server
+# Start Convex and the Next.js development server
+npx convex dev
 npm run dev
-```
-
-### 4. Local Infrastructure (Qdrant + Services)
-
-```bash
-cd infrastructure/docker
-
-# Spin up Qdrant vector DB locally
-docker-compose up -d
 ```
 
 ### Environment Variables
 
-**Backend `.env`:**
+**Backend `backend/.env`:**
+
 ```env
-GEMINI_API_KEY=your_gemini_api_key
-QDRANT_URL=your_qdrant_cluster_url
-QDRANT_API_KEY=your_qdrant_api_key
-CONVEX_URL=your_convex_deployment_url
-LANGCHAIN_API_KEY=your_langsmith_key
-LANGCHAIN_TRACING_V2=true
-HUGGINGFACE_API_KEY=your_hf_key
+OPENAI_API_KEY=sk-your_openai_api_key
+CONVEX_URL=https://your_convex_deployment_url.convex.cloud
+QDRANT_URL=http://localhost:6333
+LANGCHAIN_TRACING_V2=false
 ```
 
-**Frontend `.env.local`:**
+**Frontend `frontend/.env.local`:**
+
 ```env
-NEXT_PUBLIC_CONVEX_URL=your_convex_deployment_url
-NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_CONVEX_URL=https://your_convex_deployment_url.convex.cloud
 ```
 
 ---
 
 ## Usage
 
-### Phase 0 - Admin Workspace Setup
-1. Navigate to `/admin` in the frontend
-2. Configure brand kit: upload SVG logos, set primary/secondary RGB hex codes
-3. Define compliance rules: forbidden phrases, mandatory legal disclaimers
-4. Set audience definitions: target regions and personas
-5. Connect data sources via OAuth (Jira, SharePoint, CRM)
-6. Connect publishing channels via OAuth (LinkedIn, CMS, Email)
+### Phase 0 — Admin Workspace Setup
 
-### Phase 1 - Campaign Initiation (Marketer)
-1. Navigate to `/marketing/new-campaign`
-2. Enter campaign brief: "We are launching a new Q4 smartwatch"
-3. Select pre-approved region and persona from dropdowns
-4. Upload product images (optional - if not provided, system generates visuals)
-5. Define campaign KPIs and business motive
-6. Click **Initialize Campaign** - pipeline starts autonomously
+1. Navigate to `/workspace/setup`
+2. Define brand identity, primary colors, typography, and target personas
+3. Establish strict compliance rules and forbidden phrases
+4. Save to secure these rules immutably in Convex
 
-### HITL Review
-The system automatically pauses at three gates and notifies the reviewer:
-- **Gate 1** `/review/text` - Review master English text + governance audit log
-- **Gate 2** `/review/localization` - Review translated strings per language
-- **Gate 3** `/review/assets` - Review final visual assets; approve for publishing
+### Phase 1 — Campaign Initiation
 
-### Analytics
-Navigate to `/analytics` post-publish to view live engagement telemetry, AI strategy recommendations, and apply OODA loop updates.
+1. Navigate to `/campaigns/new`
+2. Enter the creative objective and target demographics
+3. Toggle **Enable Localization** if regional translation is required
+4. Upload reference assets to be embedded as primary context
+5. Click **Launch Campaign** — the LangGraph pipeline starts autonomously in the background
+
+### HITL Review — Execution Dashboard
+
+The system automatically routes you to `/campaigns/[id]/execute` and pauses at three distinct gates:
+
+| Gate | What to Review | Action |
+|---|---|---|
+| **Gate 1 — Text Audit** | GPT-4o master draft + Textual Governance audit log | Approve to lock the string |
+| **Gate 2 — Localization** | Localized translations per target language | Approve or regenerate with feedback |
+| **Gate 3 — Visual Assets** | Final DALL-E 3 generated assets | Approve or use "Regenerate with Feedback" to loop back |
 
 ---
 
@@ -347,40 +310,35 @@ Navigate to `/analytics` post-publish to view live engagement telemetry, AI stra
 
 ```
 Phase 0: Enterprise Onboarding
-    └── Ingest 50,000+ lines → distill to 200-token Core Enterprise Persona
-    └── Configure immutable workspace rules (hex codes, forbidden phrases, disclaimers)
-    └── Connect OAuth data sources and publishing channels
+    └── Ingest brand rules → store in Workspace Config Store
+    └── Configure immutable governance boundaries (forbidden phrases, disclaimers)
 
 Phase 1: Campaign Initiation
-    └── Marketer submits brief + KPIs
-    └── Agentic interview loop captures missing context
-    └── RAG query over Qdrant retrieves relevant enterprise context
+    └── Marketer submits brief + objective + uploaded files
+    └── State payloads serialized and sent to LangGraph Orchestrator
 
 Phase 2: Content Drafting & Textual Governance
-    └── Content Drafting Agent synthesizes master text (Gemini + RAG)
-    └── Textual Governor runs spaCy + regex (forbidden phrases, disclaimers)
-    └── [HITL Gate 1] Human reviews and locks master text
+    └── Content Drafting Agent synthesizes prompt and fallback assets (GPT-4o)
+    └── Textual Governor runs deterministic audit against forbidden phrases
+    └── [HITL Gate 1] Human reviews, applies feedback, and locks master text
 
 Phase 3: Localization & Regional Compliance
-    └── Localization Agent checks Translation Memory → LLM transcreation
-    └── Token injection masks legal text before translation
-    └── Regional Governor runs LQA, re-injects legal text verbatim
+    └── Localization Agent adapts tone/spelling or transcreates (GPT-4o)
+    └── Regional Governor audits adaptation
     └── [HITL Gate 2] Human reviews and locks localized strings
 
 Phase 4: Visual Generation & Pixel Verification
-    └── Visual Composition Agent receives locked character-counted text
-    └── Stable Diffusion (images) + Remotion (video) generation
-    └── Visual Governor runs Pillow pixel analysis (RGB hex + logo placement)
-    └── Auto-loop until brand compliance passes (no human involved)
-    └── [HITL Gate 3] Human reviews final assets
+    └── Visual Composition Agent generates media (DALL-E 3)
+    └── Visual Governor runs pixel/format verification
+    └── Auto-loop up to 3 iterations if brand constraints fail
+    └── [HITL Gate 3] Human reviews final visual assets
 
-Phase 5: Publishing
-    └── Publishing Agent routes assets to LinkedIn, CMS, Email via OAuth
+Phase 5: Publishing  *(Future Scope)*
+    └── Publishing Agent routes assets to channels via OAuth
     └── Immutable publish audit log recorded
 
-Phase 6: OODA Self-Optimization
+Phase 6: OODA Self-Optimization  *(Future Scope)*
     └── Performance Analyzer pulls live engagement telemetry
-    └── Benchmarks against Phase 1 KPI baseline
     └── Strategy Optimizer updates orchestrator weights for next campaign
 ```
 
@@ -390,50 +348,46 @@ Phase 6: OODA Self-Optimization
 
 | Agent | Type | Responsibility |
 |---|---|---|
-| **Pipeline Orchestrator** | Orchestration (LangGraph) | Central state machine; routes all inter-agent communication exclusively |
-| **Content Drafting Agent** | Intelligence (Gemini) | Synthesizes 200-token persona + RAG context into master text draft |
-| **Textual Governor** | Governance (spaCy + regex) | Deterministic forbidden phrase detection and disclaimer verification |
-| **Localization Agent** | Intelligence (Gemini) | Checks Translation Memory, then transcreates per locale |
-| **Regional Governor** | Governance (spaCy + rules) | LQA, GDPR compliance, re-injects legal text at placeholder positions |
-| **Visual Composition Agent** | Intelligence (SD + Remotion) | Generates layouts from locked character-counted text |
-| **Visual Governor** | Governance (Pillow) | Pixel-level RGB hex and logo placement verification |
-| **Publishing Agent** | Execution (OAuth APIs) | Distributes assets to authorized channels, logs audit trail |
-| **Performance Analyzer** | Observation | Pulls post-publish telemetry, benchmarks against KPI baseline |
-| **Strategy Optimizer** | Observation (OODA) | Updates orchestrator strategy weights based on performance patterns |
+| **Pipeline Orchestrator** | Orchestration (LangGraph) | Central state machine; routes all inter-agent communication, tracks iterations, manages checkpoints |
+| **Content Drafting Agent** | Intelligence (GPT-4o) | Synthesizes brief, constraints, and file assets into master text draft |
+| **Textual Governor** | Governance (Python) | Deterministic forbidden phrase detection and compliance auditing |
+| **Localization Agent** | Intelligence (GPT-4o) | Transcreates or regionally adapts English content based on toggle flags |
+| **Regional Governor** | Governance (Python) | Audits the output of the localization engine |
+| **Visual Composition Agent** | Intelligence (DALL-E 3) | Generates high-fidelity images based on cryptographically locked text and brief |
+| **Visual Governor** | Governance (Python + Pillow) | Validates asset generation and triggers iteration loops if constraints fail |
 
-**Communication rule:** No agent calls another directly. All routing goes through the Pipeline Orchestrator via structured typed payloads in Convex campaign state.
+> **Communication rule:** No agent calls another directly. All routing goes through the Pipeline Orchestrator via structured `TypedDict` payloads synced to the Convex database.
 
 ---
 
 ## Key Engineering Decisions
 
 **Deterministic Governance over LLM Self-Checking**  
-A second LLM used as a compliance reviewer is still probabilistic - it can be "convinced" by a clever generation. A spaCy regex scanner cannot. Brand compliance is a mathematical guarantee, not a second opinion.
+A second LLM used as a compliance reviewer is still probabilistic — it can be "convinced" by a clever generation. A strict Python-based governance script cannot. Brand compliance is a mathematical guarantee, not a second opinion.
 
-**Token Injection for Legal Disclaimers**  
-Legal text is masked as `[DISCLAIMER_EU_GDPR]` before the Localization Agent receives it. The agent cannot paraphrase what it never sees. The Regional Governor re-injects the legally exact text post-translation.
+**Strict Knowledge Fallback Strategy**  
+If vector database retrieval fails or is empty, the LLM is fenced completely via system prompts to rely only on explicitly uploaded session files — eliminating external hallucination risks.
 
-**200-Token Persona over Full RAG on Every Call**  
-Full enterprise context retrieval on every agent invocation causes context window saturation and inconsistent retrieval. A single distilled persona ensures every agent call has identical, stable brand grounding.
+**Non-Blocking FastAPI with Background Tasks**  
+Because AI generation and LangGraph cycles are long-running, pipeline invocation is pushed to `asyncio` background tasks. This prevents server lockups and allows Convex to push real-time loading states directly to the UI.
 
-**Cryptographic Text Locking Between Phases**  
-Once text is approved at a HITL gate, it is written to the Content Store with a cryptographic hash and marked immutable. Visual generation receives exact character counts - layouts can never break.
-
-**Single-Bus Communication Architecture**  
-All inter-agent communication is routed exclusively through the Pipeline Orchestrator. No agent holds a direct reference to another. This makes every handoff logged, typed, and traceable via LangSmith.
+**In-Memory Graph State Checkpointing**  
+LangGraph uses `MemorySaver` to natively pause the entire execution pipeline, allowing human reviewers at Gates 1, 2, and 3 to inject feedback without breaking the execution flow or losing prior generative work.
 
 **Bounded Visual Auto-Loop with Forced Escalation**  
-The Visual Governor loop has a configurable max retry threshold. After N failures, the orchestrator pauses and routes the asset to HITL with a structured pixel-level failure report - the pipeline cannot deadlock.
+The Visual Governor loop has a strict max retry threshold (`visual_iteration`). After 3 failures, the orchestrator pauses and routes the asset directly to the HITL gate — ensuring the pipeline never deadlocks or drains excessive API credits.
 
 ---
 
 ## Team
 
-Vinayak Gawade
-Aditya Patil
-Advait Ithape
-Amit Kumar Singh
+| Name | Role |
+|---|---|
+| **Vinayak Gawade** | Architecture & Backend |
+| **Aditya Patil** | Frontend & Convex |
+| **Advait Ithape** | AI Agents & LangGraph |
+| **Amit Kumar Singh** | Governance & Infrastructure |
 
 ---
 
-*ET GenAI Hackathon Phase 2 · Team VicRaptors · 2026*
+*ET GenAI Hackathon · Team VicRaptors · 2026*
